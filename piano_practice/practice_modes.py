@@ -152,7 +152,7 @@ def _prompt_and_validate(
         return False
 
 
-def mode_practice(midi_handler: MIDIHandler, timeout: Optional[float] = 10.0) -> SessionStats:
+def mode_practice(midi_handler: MIDIHandler, timeout: Optional[float] = 10.0, enabled_modes: Optional[List[str]] = None) -> SessionStats:
     """
     Mode/Scale practice mode.
 
@@ -167,6 +167,7 @@ def mode_practice(midi_handler: MIDIHandler, timeout: Optional[float] = 10.0) ->
         midi_handler: Connected MIDI handler instance
         timeout: Timeout in seconds per note (None for no timeout)
                  Will be multiplied for full scale sequences
+        enabled_modes: List of mode names to practice (None = all modes)
 
     Returns:
         SessionStats object with session results
@@ -179,10 +180,14 @@ def mode_practice(midi_handler: MIDIHandler, timeout: Optional[float] = 10.0) ->
     # Calculate sequence timeout (multiply by 3 for 8-note sequences)
     sequence_timeout = None if timeout is None else timeout * 3
 
+    # Use enabled modes or default to all
+    if enabled_modes is None or len(enabled_modes) == 0:
+        enabled_modes = ['Ionian', 'Aeolian']  # Default to major and minor
+
     try:
         while True:
-            # Select random mode and key
-            mode = get_random_mode()
+            # Select random mode from enabled modes and random key
+            mode = random.choice(enabled_modes)
             key = get_random_note()
 
             # Generate the scale

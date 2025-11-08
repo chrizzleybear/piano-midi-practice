@@ -9,6 +9,8 @@ A command-line MIDI practice tool that helps you master scale degrees and modes 
 - **Two Practice Modes**:
   - **Scale Degree Practice**: Random intervals from a root note
   - **Mode/Scale Practice**: Play complete modes ascending and descending
+- **Interactive Menus**: Navigate with arrow keys, use Space to toggle checkboxes, Enter to confirm
+- **Customizable Mode Selection**: Choose which modes to practice (default: Major and Minor)
 - **Adjustable Time Pressure**: Choose your difficulty level (None, Low, Medium, Hard)
 - **Real-time Feedback**: Color-coded correct/incorrect responses
 - **Session Statistics**: Track your accuracy and progress
@@ -53,22 +55,34 @@ python -m piano_practice.main
 deactivate
 ```
 
+### Testing the Interactive Menus
+
+You can test the arrow key navigation without a MIDI keyboard:
+```bash
+python test_menus.py
+```
+
+This will show you how the interactive menus work.
+
 ### How it Works
 
 1. The app connects to your MIDI keyboard
-2. Select a practice mode:
-   - **Mode 1 - Scale Degree Practice**:
+2. Select a practice mode (use ↑↓ arrow keys, press Enter to select):
+   - **Scale Degree Practice**:
      - Random root note is displayed (e.g., "D")
      - Play the root note
      - App prompts scale degrees (e.g., "Play the 3", "Play the b7")
      - After 5-7 prompts, new root note is selected
-   - **Mode 2 - Mode/Scale Practice**:
+   - **Mode/Scale Practice**:
+     - Select which modes to practice (Space to toggle, Enter to confirm)
+     - Default: Ionian (Major) and Aeolian (Minor) ✓
+     - Can add: Dorian, Phrygian, Lydian, Mixolydian, Locrian
      - Random mode and key are displayed (e.g., "Dorian in F#")
      - Complete scale is shown
      - Play the scale ascending (8 notes)
      - Play the scale descending (8 notes)
      - New mode/key is selected
-3. Select time pressure level:
+3. Select time pressure level (use ↑↓ arrow keys, press Enter):
    - **None**: No time limit
    - **Low**: 15 seconds per note/sequence
    - **Medium**: 10 seconds per note/sequence
@@ -126,6 +140,7 @@ piano_practice_app/
 - Make sure you have Python 3.8+ installed
 - Use a virtual environment to avoid conflicts between Python versions
 - If you see "externally-managed-environment" error, run `./setup.sh` instead
+- If you already installed dependencies before, run `pip install -r requirements.txt` again to get the interactive menu support
 - Try installing packages one at a time if bulk install fails
 
 **Notes not registering:**

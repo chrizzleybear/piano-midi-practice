@@ -3,9 +3,11 @@ Main entry point for the Piano Practice App.
 """
 
 import sys
-from typing import Optional
+from typing import Optional, List
+import questionary
 from .midi_handler import auto_connect_midi
 from .practice_modes import scale_degree_practice, mode_practice, display_final_stats, Colors
+from .music_theory import get_mode_names
 
 
 # Time pressure configurations (timeout in seconds)
@@ -24,34 +26,38 @@ def select_practice_mode() -> int:
     Returns:
         Mode number (1 or 2), or 0 to exit
     """
-    print(f"\n{Colors.BOLD}Select Practice Mode:{Colors.RESET}")
-    print(f"  {Colors.BLUE}1.{Colors.RESET} Scale Degree Practice")
-    print(f"     - Random intervals from a root note")
-    print(f"     - Example: 'Play the 3', 'Play the b7'")
-    print()
-    print(f"  {Colors.BLUE}2.{Colors.RESET} Mode/Scale Practice")
-    print(f"     - Play complete modes ascending and descending")
-    print(f"     - Example: 'Dorian in F#', 'Lydian in Bb'")
-    print()
-    print(f"  {Colors.BLUE}Q.{Colors.RESET} Quit")
-    print()
+    try:
+        choice = questionary.select(
+            "Select Practice Mode:",
+            choices=[
+                questionary.Choice(
+                    title="Scale Degree Practice - Random intervals from a root note",
+                    value=1
+                ),
+                questionary.Choice(
+                    title="Mode/Scale Practice - Play complete modes ascending and descending",
+                    value=2
+                ),
+                questionary.Choice(
+                    title="Quit",
+                    value=0
+                ),
+            ],
+            style=questionary.Style([
+                ('selected', 'fg:#00ff00 bold'),  # Green for selected
+                ('pointer', 'fg:#00ff00 bold'),   # Green arrow
+                ('highlighted', 'fg:#00ff00'),     # Green highlight
+            ])
+        ).ask()
 
-    while True:
-        try:
-            choice = input(f"{Colors.BOLD}Enter choice (1, 2, or Q): {Colors.RESET}").strip().upper()
-
-            if choice == 'Q':
-                return 0
-            elif choice == '1':
-                return 1
-            elif choice == '2':
-                return 2
-            else:
-                print(f"{Colors.RED}Invalid choice. Please enter 1, 2, or Q.{Colors.RESET}")
-
-        except (KeyboardInterrupt, EOFError):
-            print()
+        if choice is None:  # User pressed Ctrl+C
             return 0
+
+        return choice
+
+    except (KeyboardInterrupt, EOFError):
+        print()
+        return 0
 
 
 def select_time_pressure() -> Optional[float]:
@@ -61,39 +67,98 @@ def select_time_pressure() -> Optional[float]:
     Returns:
         Timeout value in seconds (None for no timeout)
     """
-    print(f"\n{Colors.BOLD}Select Time Pressure:{Colors.RESET}")
-    print(f"  {Colors.BLUE}1.{Colors.RESET} None")
-    print(f"     - No time limit, take as long as you need")
-    print()
-    print(f"  {Colors.BLUE}2.{Colors.RESET} Low")
-    print(f"     - 15 second timeout per note/sequence")
-    print()
-    print(f"  {Colors.BLUE}3.{Colors.RESET} Medium")
-    print(f"     - 10 second timeout per note/sequence")
-    print()
-    print(f"  {Colors.BLUE}4.{Colors.RESET} Hard")
-    print(f"     - 5 second timeout per note/sequence")
-    print()
+    try:
+        choice = questionary.select(
+            "Select Time Pressure:",
+            choices=[
+                questionary.Choice(
+                    title="None - No time limit, take as long as you need",
+                    value='none'
+                ),
+                questionary.Choice(
+                    title="Low - 15 second timeout per note/sequence",
+                    value='low'
+                ),
+                questionary.Choice(
+                    title="Medium - 10 second timeout per note/sequence",
+                    value='medium'
+                ),
+                questionary.Choice(
+                    title="Hard - 5 second timeout per note/sequence",
+                    value='hard'
+                ),
+            ],
+            style=questionary.Style([
+                ('selected', 'fg:#ffff00 bold'),  # Yellow for selected
+                ('pointer', 'fg:#ffff00 bold'),   # Yellow arrow
+                ('highlighted', 'fg:#ffff00'),     # Yellow highlight
+            ])
+        ).ask()
 
-    while True:
-        try:
-            choice = input(f"{Colors.BOLD}Enter choice (1-4): {Colors.RESET}").strip()
-
-            if choice == '1':
-                return TIME_PRESSURE_CONFIG['none']
-            elif choice == '2':
-                return TIME_PRESSURE_CONFIG['low']
-            elif choice == '3':
-                return TIME_PRESSURE_CONFIG['medium']
-            elif choice == '4':
-                return TIME_PRESSURE_CONFIG['hard']
-            else:
-                print(f"{Colors.RED}Invalid choice. Please enter 1, 2, 3, or 4.{Colors.RESET}")
-
-        except (KeyboardInterrupt, EOFError):
-            print()
+        if choice is None:  # User pressed Ctrl+C
             # Default to medium if interrupted
             return TIME_PRESSURE_CONFIG['medium']
+
+        return TIME_PRESSURE_CONFIG[choice]
+
+    except (KeyboardInterrupt, EOFError):
+        print()
+        # Default to medium if interrupted
+        return TIME_PRESSURE_CONFIG['medium']
+
+
+def select_modes() -> List[str]:
+    """
+    Display checkbox menu to select which modes to practice.
+
+    Returns:
+        List of selected mode names (defaults to Ionian and Aeolian)
+    """
+    all_modes = get_mode_names()
+
+    # Create choices with default selection for Ionian and Aeolian
+    choices = []
+    for mode in all_modes:
+        # Add description for common modes
+        if mode == 'Ionian':
+            description = f"{mode} (Major scale)"
+        elif mode == 'Aeolian':
+            description = f"{mode} (Natural minor)"
+        else:
+            description = mode
+
+        choices.append(
+            questionary.Choice(
+                title=description,
+                value=mode,
+                checked=(mode in ['Ionian', 'Aeolian'])  # Default to major and minor
+            )
+        )
+
+    try:
+        selected = questionary.checkbox(
+            "Select modes to practice (use Space to toggle, Enter to confirm):",
+            choices=choices,
+            style=questionary.Style([
+                ('selected', 'fg:#00ff00'),           # Green for selected items
+                ('pointer', 'fg:#00ff00 bold'),       # Green arrow
+                ('highlighted', 'fg:#00ff00'),         # Green highlight
+                ('checkbox', 'fg:#00ff00'),            # Green checkbox
+                ('checkbox-selected', 'fg:#00ff00 bold'),  # Bold green when checked
+            ])
+        ).ask()
+
+        if selected is None or len(selected) == 0:
+            # Default to Ionian and Aeolian if cancelled or nothing selected
+            print(f"{Colors.YELLOW}No modes selected. Using default: Ionian and Aeolian{Colors.RESET}")
+            return ['Ionian', 'Aeolian']
+
+        return selected
+
+    except (KeyboardInterrupt, EOFError):
+        print()
+        # Default to Ionian and Aeolian if interrupted
+        return ['Ionian', 'Aeolian']
 
 
 def main():
@@ -126,11 +191,17 @@ def main():
         # Select time pressure
         timeout = select_time_pressure()
 
+        # If mode practice, select which modes to include
+        enabled_modes = None
+        if mode_choice == 2:
+            enabled_modes = select_modes()
+            print(f"\n{Colors.BLUE}Practicing modes: {', '.join(enabled_modes)}{Colors.RESET}\n")
+
         # Run selected practice mode with timeout
         if mode_choice == 1:
             stats = scale_degree_practice(midi_handler, timeout=timeout)
         elif mode_choice == 2:
-            stats = mode_practice(midi_handler, timeout=timeout)
+            stats = mode_practice(midi_handler, timeout=timeout, enabled_modes=enabled_modes)
         else:
             print(f"{Colors.RED}Invalid mode selection{Colors.RESET}")
             return
