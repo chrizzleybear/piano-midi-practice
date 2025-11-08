@@ -3,7 +3,7 @@ Practice mode implementations for different training exercises.
 """
 
 import random
-from typing import Dict, Tuple, List
+from typing import Dict, Tuple, List, Optional
 from .music_theory import (
     get_random_note,
     get_random_interval,
@@ -54,7 +54,7 @@ class SessionStats:
                 f"Accuracy: {self.get_accuracy():.1f}%")
 
 
-def scale_degree_practice(midi_handler: MIDIHandler) -> SessionStats:
+def scale_degree_practice(midi_handler: MIDIHandler, timeout: Optional[float] = 10.0) -> SessionStats:
     """
     Main scale degree practice mode.
 
@@ -67,6 +67,7 @@ def scale_degree_practice(midi_handler: MIDIHandler) -> SessionStats:
 
     Args:
         midi_handler: Connected MIDI handler instance
+        timeout: Timeout in seconds per note (None for no timeout)
 
     Returns:
         SessionStats object with session results
@@ -83,7 +84,7 @@ def scale_degree_practice(midi_handler: MIDIHandler) -> SessionStats:
 
             # Prompt for root note
             print(f"\n{Colors.BLUE}{Colors.BOLD}New Root Note:{Colors.RESET}")
-            if not _prompt_and_validate(midi_handler, stats, root_note, root_note, is_root=True):
+            if not _prompt_and_validate(midi_handler, stats, root_note, root_note, is_root=True, timeout=timeout):
                 continue  # Retry if incorrect
 
             # Prompt for scale degrees
@@ -93,9 +94,9 @@ def scale_degree_practice(midi_handler: MIDIHandler) -> SessionStats:
 
                 prompt_text = f"Play {format_interval_prompt(interval)} (from {root_note})"
 
-                if not _prompt_and_validate(midi_handler, stats, expected_note, prompt_text):
+                if not _prompt_and_validate(midi_handler, stats, expected_note, prompt_text, timeout=timeout):
                     # User got it wrong, repeat this interval
-                    _prompt_and_validate(midi_handler, stats, expected_note, prompt_text)
+                    _prompt_and_validate(midi_handler, stats, expected_note, prompt_text, timeout=timeout)
 
     except KeyboardInterrupt:
         print(f"\n\n{Colors.YELLOW}Practice session ended.{Colors.RESET}")
@@ -151,7 +152,7 @@ def _prompt_and_validate(
         return False
 
 
-def mode_practice(midi_handler: MIDIHandler) -> SessionStats:
+def mode_practice(midi_handler: MIDIHandler, timeout: Optional[float] = 10.0) -> SessionStats:
     """
     Mode/Scale practice mode.
 
@@ -164,6 +165,8 @@ def mode_practice(midi_handler: MIDIHandler) -> SessionStats:
 
     Args:
         midi_handler: Connected MIDI handler instance
+        timeout: Timeout in seconds per note (None for no timeout)
+                 Will be multiplied for full scale sequences
 
     Returns:
         SessionStats object with session results
@@ -172,6 +175,9 @@ def mode_practice(midi_handler: MIDIHandler) -> SessionStats:
     print(f"\n{Colors.BOLD}=== Mode Practice ==={Colors.RESET}")
     print("Play the complete scale ascending, then descending.")
     print("Press Ctrl+C to exit.\n")
+
+    # Calculate sequence timeout (multiply by 3 for 8-note sequences)
+    sequence_timeout = None if timeout is None else timeout * 3
 
     try:
         while True:
@@ -194,7 +200,8 @@ def mode_practice(midi_handler: MIDIHandler) -> SessionStats:
             ascending_correct = _play_scale_sequence(
                 midi_handler,
                 scale_ascending,
-                "ascending"
+                "ascending",
+                timeout=sequence_timeout
             )
 
             if ascending_correct:
@@ -203,7 +210,8 @@ def mode_practice(midi_handler: MIDIHandler) -> SessionStats:
                 descending_correct = _play_scale_sequence(
                     midi_handler,
                     scale_descending,
-                    "descending"
+                    "descending",
+                    timeout=sequence_timeout
                 )
 
                 if descending_correct:
@@ -229,7 +237,7 @@ def _play_scale_sequence(
     midi_handler: MIDIHandler,
     expected_scale: List[str],
     direction: str,
-    timeout: float = 15.0
+    timeout: Optional[float] = 15.0
 ) -> bool:
     """
     Listen for user to play a sequence of notes and validate against expected scale.
@@ -238,14 +246,14 @@ def _play_scale_sequence(
         midi_handler: MIDI handler instance
         expected_scale: List of expected note names in order
         direction: "ascending" or "descending" for display
-        timeout: Timeout for the entire sequence
+        timeout: Timeout for the entire sequence (None for no timeout)
 
     Returns:
         True if all notes were correct, False otherwise
     """
     import time
 
-    start_time = time.time()
+    start_time = time.time() if timeout is not None else None
     notes_played = []
     current_index = 0
 
@@ -254,9 +262,10 @@ def _play_scale_sequence(
 
     while current_index < len(expected_scale):
         # Check timeout for entire sequence
-        if timeout and (time.time() - start_time) >= timeout:
-            print(f"\n  {Colors.RED}⏱ Timeout! Try again.{Colors.RESET}")
-            return False
+        if timeout is not None and start_time is not None:
+            if (time.time() - start_time) >= timeout:
+                print(f"\n  {Colors.RED}⏱ Timeout! Try again.{Colors.RESET}")
+                return False
 
         # Listen for next note (short timeout per note)
         midi_note = midi_handler.listen_for_note(timeout=3.0)

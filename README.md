@@ -9,6 +9,7 @@ A command-line MIDI practice tool that helps you master scale degrees and modes 
 - **Two Practice Modes**:
   - **Scale Degree Practice**: Random intervals from a root note
   - **Mode/Scale Practice**: Play complete modes ascending and descending
+- **Adjustable Time Pressure**: Choose your difficulty level (None, Low, Medium, Hard)
 - **Real-time Feedback**: Color-coded correct/incorrect responses
 - **Session Statistics**: Track your accuracy and progress
 - **Timeout Hints**: Helpful hints if you take too long
@@ -67,7 +68,12 @@ deactivate
      - Play the scale ascending (8 notes)
      - Play the scale descending (8 notes)
      - New mode/key is selected
-3. Press Ctrl+C to exit and view your statistics
+3. Select time pressure level:
+   - **None**: No time limit
+   - **Low**: 15 seconds per note/sequence
+   - **Medium**: 10 seconds per note/sequence
+   - **Hard**: 5 seconds per note/sequence
+4. Press Ctrl+C to exit and view your statistics
 
 ### Supported Intervals (Scale Degree Mode)
 

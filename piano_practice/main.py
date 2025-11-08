@@ -3,8 +3,18 @@ Main entry point for the Piano Practice App.
 """
 
 import sys
+from typing import Optional
 from .midi_handler import auto_connect_midi
 from .practice_modes import scale_degree_practice, mode_practice, display_final_stats, Colors
+
+
+# Time pressure configurations (timeout in seconds)
+TIME_PRESSURE_CONFIG = {
+    'none': None,      # No timeout
+    'low': 15.0,       # 15 seconds
+    'medium': 10.0,    # 10 seconds
+    'hard': 5.0,       # 5 seconds
+}
 
 
 def select_practice_mode() -> int:
@@ -44,6 +54,48 @@ def select_practice_mode() -> int:
             return 0
 
 
+def select_time_pressure() -> Optional[float]:
+    """
+    Display menu and get user's time pressure selection.
+
+    Returns:
+        Timeout value in seconds (None for no timeout)
+    """
+    print(f"\n{Colors.BOLD}Select Time Pressure:{Colors.RESET}")
+    print(f"  {Colors.BLUE}1.{Colors.RESET} None")
+    print(f"     - No time limit, take as long as you need")
+    print()
+    print(f"  {Colors.BLUE}2.{Colors.RESET} Low")
+    print(f"     - 15 second timeout per note/sequence")
+    print()
+    print(f"  {Colors.BLUE}3.{Colors.RESET} Medium")
+    print(f"     - 10 second timeout per note/sequence")
+    print()
+    print(f"  {Colors.BLUE}4.{Colors.RESET} Hard")
+    print(f"     - 5 second timeout per note/sequence")
+    print()
+
+    while True:
+        try:
+            choice = input(f"{Colors.BOLD}Enter choice (1-4): {Colors.RESET}").strip()
+
+            if choice == '1':
+                return TIME_PRESSURE_CONFIG['none']
+            elif choice == '2':
+                return TIME_PRESSURE_CONFIG['low']
+            elif choice == '3':
+                return TIME_PRESSURE_CONFIG['medium']
+            elif choice == '4':
+                return TIME_PRESSURE_CONFIG['hard']
+            else:
+                print(f"{Colors.RED}Invalid choice. Please enter 1, 2, 3, or 4.{Colors.RESET}")
+
+        except (KeyboardInterrupt, EOFError):
+            print()
+            # Default to medium if interrupted
+            return TIME_PRESSURE_CONFIG['medium']
+
+
 def main():
     """Main application entry point."""
 
@@ -71,11 +123,14 @@ def main():
             print(f"{Colors.YELLOW}Exiting...{Colors.RESET}")
             return
 
-        # Run selected practice mode
+        # Select time pressure
+        timeout = select_time_pressure()
+
+        # Run selected practice mode with timeout
         if mode_choice == 1:
-            stats = scale_degree_practice(midi_handler)
+            stats = scale_degree_practice(midi_handler, timeout=timeout)
         elif mode_choice == 2:
-            stats = mode_practice(midi_handler)
+            stats = mode_practice(midi_handler, timeout=timeout)
         else:
             print(f"{Colors.RED}Invalid mode selection{Colors.RESET}")
             return
