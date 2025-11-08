@@ -12,7 +12,11 @@ A command-line MIDI practice tool that helps you master scale degrees and modes 
 - **Interactive Menus**: Navigate with arrow keys, use Space to toggle checkboxes, Enter to confirm
 - **Customizable Mode Selection**: Choose which modes to practice (default: Major and Minor)
 - **Adjustable Time Pressure**: Choose your difficulty level (None, Low, Medium, Hard)
-- **Real-time Feedback**: Color-coded correct/incorrect responses
+- **Smart Feedback System**:
+  - Shows note numbers during play (1-8)
+  - Play through mistakes without interruption
+  - Get complete error summary at the end of each round
+  - Escape signal to end early (play octave interval)
 - **Session Statistics**: Track your accuracy and progress
 - **Timeout Hints**: Helpful hints if you take too long
 
@@ -64,6 +68,28 @@ python test_menus.py
 
 This will show you how the interactive menus work.
 
+### Example Mode Practice Session
+
+```
+Mode: Dorian | Key: D
+Scale: D - E - F - G - A - B - C - D
+
+Play ASCENDING:
+  Expected: D → E → F → G → A → B → C → D
+  Playing (1-8)... 1 2 3 4 5 6 7 8
+  ✓ Ascending scale correct!
+
+Play DESCENDING:
+  Expected: D → C → B → A → G → F → E → D
+  Playing (1-8)... 1 2 3 4 5 6 7 8
+  ✗ Descending scale had errors:
+    Note 3: Expected B, played Bb
+    Note 5: Expected G, played F#
+```
+
+**Using the escape signal:**
+If you make a mistake early and want to end the round immediately, play two notes an octave apart at the same time (e.g., C3 + C4 together).
+
 ### How it Works
 
 1. The app connects to your MIDI keyboard
@@ -80,7 +106,12 @@ This will show you how the interactive menus work.
      - Random mode and key are displayed (e.g., "Dorian in F#")
      - Complete scale is shown
      - Play the scale ascending (8 notes)
-     - Play the scale descending (8 notes)
+       - App shows note numbers (1 2 3...) as you play
+       - Continue playing even if you make mistakes
+       - Feedback shown only after 8th note or escape signal
+       - Escape signal: Play two notes an octave apart simultaneously to end early
+     - Play the scale descending (8 notes, same rules)
+     - Feedback shows all errors at once with note positions
      - New mode/key is selected
 3. Select time pressure level (use ↑↓ arrow keys, press Enter):
    - **None**: No time limit
@@ -109,9 +140,18 @@ This will show you how the interactive menus work.
 
 ### Feedback System
 
+**Scale Degree Practice:**
 - ✓ **Green** = Correct answer
 - ✗ **Red** = Wrong note (shows what you played)
 - ⏱ **Yellow** = Timeout hint (shows expected note)
+
+**Mode/Scale Practice:**
+- **During play**: Shows note numbers (1 2 3 4 5 6 7 8)
+- **After each round**: Shows complete error summary
+  - ✓ **Green** = All 8 notes correct
+  - ✗ **Red** = Lists each error with position and notes
+  - Example: "Note 3: Expected E, played F"
+- **Escape signal**: Play two notes an octave apart to end early and see results
 
 ## Project Structure
 

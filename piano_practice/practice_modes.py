@@ -246,6 +246,8 @@ def _play_scale_sequence(
 ) -> bool:
     """
     Listen for user to play a sequence of notes and validate against expected scale.
+    Shows note numbers (1-8) during play, provides feedback only at the end.
+    User can escape early by playing two notes an octave apart simultaneously.
 
     Args:
         midi_handler: MIDI handler instance
@@ -260,10 +262,14 @@ def _play_scale_sequence(
 
     start_time = time.time() if timeout is not None else None
     notes_played = []
+    expected_notes = []
+    errors = []  # Track errors: (position, expected, played)
     current_index = 0
+    last_note_time = None
+    previous_midi_notes = set()
 
     print(f"  Expected: {' → '.join(expected_scale)}")
-    print(f"  {Colors.YELLOW}Playing...{Colors.RESET}", end=" ", flush=True)
+    print(f"  {Colors.YELLOW}Playing (1-8)...{Colors.RESET}", end=" ", flush=True)
 
     while current_index < len(expected_scale):
         # Check timeout for entire sequence
@@ -273,30 +279,69 @@ def _play_scale_sequence(
                 return False
 
         # Listen for next note (short timeout per note)
-        midi_note = midi_handler.listen_for_note(timeout=3.0)
+        midi_note = midi_handler.listen_for_note(timeout=0.1)
 
         if midi_note is None:
-            continue  # Keep waiting
+            # Check if enough time has passed to clear the simultaneous note buffer
+            if last_note_time and (time.time() - last_note_time) > 0.2:
+                previous_midi_notes.clear()
+            continue
+
+        current_time = time.time()
+
+        # Check for octave escape signal (two notes an octave apart played simultaneously)
+        if last_note_time and (current_time - last_note_time) < 0.1:
+            # Notes played within 100ms - check for octave
+            for prev_note in previous_midi_notes:
+                if abs(midi_note - prev_note) == 12:
+                    # Octave detected - escape signal!
+                    print(f"\n  {Colors.YELLOW}(Escape signal detected){Colors.RESET}")
+                    # Jump to end
+                    while current_index < len(expected_scale):
+                        notes_played.append(None)  # Placeholder for skipped notes
+                        expected_notes.append(expected_scale[current_index])
+                        current_index += 1
+                    break
+
+        # Update timing and note tracking
+        last_note_time = current_time
+        previous_midi_notes.add(midi_note)
+
+        # If we escaped, break out
+        if current_index >= len(expected_scale):
+            break
 
         played_note = midi_to_note_name(midi_note)
         expected_note = expected_scale[current_index]
 
-        # Show progress
-        print(f"{played_note}", end=" ", flush=True)
+        # Show progress as numbers (1-8)
+        print(f"{current_index + 1}", end=" ", flush=True)
+
         notes_played.append(played_note)
+        expected_notes.append(expected_note)
 
-        # Check if correct
-        if notes_match(played_note, expected_note):
-            current_index += 1
-        else:
-            # Wrong note
-            print(f"\n  {Colors.RED}✗ Wrong! Expected {expected_note}, got {played_note}{Colors.RESET}")
-            print(f"  You played: {' → '.join(notes_played)}")
-            return False
+        # Check if correct (but don't stop)
+        if not notes_match(played_note, expected_note):
+            errors.append((current_index + 1, expected_note, played_note))
 
-    # All notes correct
-    print(f"\n  {Colors.GREEN}✓ {direction.capitalize()} scale correct!{Colors.RESET}")
-    return True
+        current_index += 1
+
+    # Now show feedback
+    print()
+
+    if len(errors) == 0:
+        # All notes correct
+        print(f"  {Colors.GREEN}✓ {direction.capitalize()} scale correct!{Colors.RESET}")
+        return True
+    else:
+        # Show errors
+        print(f"  {Colors.RED}✗ {direction.capitalize()} scale had errors:{Colors.RESET}")
+        for position, expected, played in errors:
+            if played:
+                print(f"    Note {position}: Expected {expected}, played {played}")
+            else:
+                print(f"    Note {position}: Expected {expected}, skipped")
+        return False
 
 
 def display_final_stats(stats: SessionStats):
